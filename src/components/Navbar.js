@@ -38,7 +38,7 @@ export default function Navbar({ role }) {
 
         {role === "USER" && (
           <>
-           <Link to="/user/" style={styles.link}>Home</Link>
+           <Link to="/user/homeUser" style={styles.link}>Home</Link>
             <Link to="/user/my-usages" style={styles.link}>My Usages</Link>
             <Link to="/user/apply-sim" style={styles.link}>Apply SIM</Link>
             <Link to="/user/my-plans" style={styles.link}>My Plans</Link>
@@ -46,6 +46,7 @@ export default function Navbar({ role }) {
             <Link to="/user/Recharge-SIM" style={styles.link}>Recharge SIM(Prepaid)</Link>
             <Link to="/user/BillList" style={styles.link}>Bills(POSTPAID)</Link>
              <Link to="/user/ChangePlanPostpaid" style={styles.link}>ChangePlanPostpaid(POSTPAID)</Link>
+             
           </>
         )}
       </div>

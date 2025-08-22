@@ -8,6 +8,7 @@ import ActivePlans from '../../components/user/ActivePlans.js';
 import RechargeForm from '../../components/user/RechargeSim.js';
 import BillList from '../../components/user/BillList.js';
 import ChangePlanPostpaid from '../../components/user/ChangePlanPostpaid.js';
+import HomeUser from '../../components/user/Home.js';
 const UserDashboard = () => {
   return (
     <div>
@@ -20,7 +21,7 @@ const UserDashboard = () => {
       <div style={{ padding: '20px' }}>
         <Routes>
           {/* Default redirect to plans */}
-         <Route path="/" element={<Navigate to="my-plans" replace />} /> 
+         <Route path="/" element={<Navigate to="HomeUser" replace />} /> 
 
           {/* Plans page */}
           <Route path="my-plans" element={<MyPlans />} />
@@ -36,10 +37,11 @@ const UserDashboard = () => {
            <Route path="Recharge-SIM" element={<RechargeForm />} />
              <Route path="BillList" element={<BillList />}/>
                   <Route path="ChangePlanPostpaid" element={<ChangePlanPostpaid />}/>
+                   <Route path="HomeUser" element={<HomeUser/>}/>
              
 
           {/* Optional: Catch all - redirect to plans */}
-           <Route path="*" element={<Navigate to="my-plans" replace />} /> 
+           <Route path="*" element={<Navigate to="HomeUser" replace />} /> 
         </Routes>
       </div>
     </div>

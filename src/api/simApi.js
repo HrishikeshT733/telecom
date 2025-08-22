@@ -27,3 +27,8 @@ export const changePlanPostpaid = (simId, planData) =>
        export const ActivateNewPlanPostpaid = (simId,planData) =>
   axios.post(`api/sim/ActivateNewPlanPostpaid/${simId}`,planData)
        .then((res) => res.data);
+
+
+       
+export const getAllSims = () =>
+  axios.get(`api/sim/getAllSims`).then((res) => res.data);//Admin only

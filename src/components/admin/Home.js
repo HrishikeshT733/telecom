@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { resetSimulationDate, getSimulationDate } from "../../api/dashboardApi"; // adjust path if needed
+import { getAllSims } from "../../api/simApi.js";
+import { getAllCustomer } from "../../api/customerApi.js";
+import { resetSimulationDate, getSimulationDate } from "../../api/dashboardApi";
+import "./HomeAdmin.css"; // custom css file
 
 export default function HomeAdmin() {
   const [loading, setLoading] = useState(false);
@@ -7,17 +10,47 @@ export default function HomeAdmin() {
   const [error, setError] = useState("");
   const [simulationDate, setSimulationDate] = useState("");
 
-  // fetch current simulation date on load
+  // 📊 state for counts
+  const [totalCustomers, setTotalCustomers] = useState(0);
+  const [totalSims, setTotalSims] = useState(0);
+  const [activeSims, setActiveSims] = useState(0);
+  const [inactiveSims, setInactiveSims] = useState(0);
+  const [pendingSims, setPendingSims] = useState(0);
+  const [blockedSims, setBlockedSims] = useState(0);
+  const [prepaidSims, setPrepaidSims] = useState(0);
+  const [postpaidSims, setPostpaidSims] = useState(0);
+
   useEffect(() => {
     fetchSimulationDate();
+    fetchSummaryData();
   }, []);
 
   const fetchSimulationDate = async () => {
     try {
       const data = await getSimulationDate();
       setSimulationDate(data.simulationDate);
-    } catch (err) {
+    } catch {
       setError("Failed to fetch simulation date");
+    }
+  };
+
+  const fetchSummaryData = async () => {
+    try {
+      const customers = await getAllCustomer();
+      setTotalCustomers(customers.length);
+
+      const sims = await getAllSims();
+      setTotalSims(sims.length);
+
+      setActiveSims(sims.filter((s) => s.status === "ACTIVE").length);
+      setInactiveSims(sims.filter((s) => s.status === "INACTIVE").length);
+      setPendingSims(sims.filter((s) => s.status === "PENDING").length);
+      setBlockedSims(sims.filter((s) => s.status === "BLOCKED").length);
+
+      setPrepaidSims(sims.filter((s) => s.simType === "PREPAID").length);
+      setPostpaidSims(sims.filter((s) => s.simType === "POSTPAID").length);
+    } catch {
+      setError("Failed to fetch dashboard data");
     }
   };
 
@@ -34,46 +67,80 @@ export default function HomeAdmin() {
     try {
       const data = await resetSimulationDate();
       setMessage(data.message || "Simulation reset successfully");
-      fetchSimulationDate(); // refresh date after reset
+      fetchSimulationDate();
+      fetchSummaryData();
     } catch (err) {
-      setError(
-        err.response?.data?.error || "Something went wrong. Please try again."
-      );
+      setError(err.response?.data?.error || "Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-6">
-      <h1 className="text-2xl font-bold mb-6">Admin Dashboard</h1>
+    <div className="home-admin">
+      <h1 className="title">Admin Dashboard</h1>
+      <div className="card info">
+  <p>ℹ️ Simulation Info</p>
+  <h2 style={{ fontSize: "14px", lineHeight: "1.4", fontWeight: "normal" }}>
+    This Telecom Management System runs in a simulated environment where
+    <b> 1 day = 30 seconds</b> to generate real-time usage and billing data.
+  </h2>
+</div>
+<br></br>
 
-      <div className="p-6 border rounded-2xl shadow-md text-center max-w-md">
-        <div className="text-red-500 text-4xl mb-4">⚠️</div>
-        <p className="text-gray-700 mb-4">
+      {/* Summary Cards */}
+      <div className="card-grid">
+        <div className="card blue">
+          <p>Total Customers</p>
+          <h2>{totalCustomers}</h2>
+        </div>
+        <div className="card purple">
+          <p>Total SIMs</p>
+          <h2>{totalSims}</h2>
+        </div>
+        <div className="card green">
+          <p>Active SIMs</p>
+          <h2>{activeSims}</h2>
+        </div>
+        <div className="card gray">
+          <p>Inactive SIMs</p>
+          <h2>{inactiveSims}</h2>
+        </div>
+        <div className="card yellow">
+          <p>Pending SIMs</p>
+          <h2>{pendingSims}</h2>
+        </div>
+        <div className="card red">
+          <p>Blocked SIMs</p>
+          <h2>{blockedSims}</h2>
+        </div>
+        <div className="card indigo">
+          <p>Prepaid SIMs</p>
+          <h2>{prepaidSims}</h2>
+        </div>
+        <div className="card pink">
+          <p>Postpaid SIMs</p>
+          <h2>{postpaidSims}</h2>
+        </div>
+      </div>
+
+      {/* Simulation Reset Section */}
+      <div className="reset-box">
+        <div className="warning">⚠️</div>
+        <p>
           Current Simulation Date:{" "}
-          <span className="font-bold text-blue-600">
-            {simulationDate || "Loading..."}
-          </span>
+          <span className="highlight">{simulationDate || "Loading..."}</span>
         </p>
-        <p className="text-gray-700 mb-6">
-          Resetting the simulation date will{" "}
-          <span className="font-bold text-red-600">
-            delete all bills and usage records
-          </span>
-          . Only SIMs and Plans will remain.
+        <p className="danger-text">
+          Resetting will <b>delete all bills ,usage records and Set SIMs to INACTIVE</b>. Only SIMs and Plans remain. and you need to Recharge all Sims
         </p>
 
-        <button
-          onClick={handleReset}
-          disabled={loading}
-          className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-xl"
-        >
+        <button onClick={handleReset} disabled={loading} className="reset-btn">
           {loading ? "Resetting..." : "⚠️ Reset Simulation Date"}
         </button>
 
-        {message && <p className="text-green-600 mt-4">{message}</p>}
-        {error && <p className="text-red-600 mt-4">{error}</p>}
+        {message && <p className="success-text">{message}</p>}
+        {error && <p className="error-text">{error}</p>}
       </div>
     </div>
   );
