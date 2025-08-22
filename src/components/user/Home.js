@@ -1,5 +1,5 @@
 import React, { useState, useEffect ,useContext} from "react";
-import "./HomeUser.css";
+import "./CSS/HomeUser.css";
 import { viewAllSim } from "../../api/simApi.js";
 import { getBillsByCustomer } from "../../api/billApi.js";
 import { AuthContext } from "../../context/AuthContext.js";

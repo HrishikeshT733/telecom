@@ -76,7 +76,7 @@ const RechargeForm = () => {
       setAmount("");
     } catch (error) {
       console.error("Recharge failed:", error);
-      setMessage("Recharge failed. Try again.");
+      setMessage(error.response?.data?.message || "Recharge failed. Try again.");
     } finally {
       setLoading(false);
     }

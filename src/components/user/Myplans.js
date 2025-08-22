@@ -1,11 +1,14 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { getAllPlans } from "../../api/planApi.js";
+import "./CSS/MyPlans.css";
 
 export default function MyPlans() {
   const [plans, setPlans] = useState([]);
   const [error, setError] = useState("");
+  const [selectedType, setSelectedType] = useState("PREPAID"); // toggle
+  const navigate = useNavigate();
 
-  // For demo, showing all plans. If you want only user-subscribed plans, you need API for that.
   useEffect(() => {
     fetchPlans();
   }, []);
@@ -14,26 +17,66 @@ export default function MyPlans() {
     try {
       const data = await getAllPlans();
       setPlans(data);
-    } catch {
+      setError("");
+    } catch (err) {
+      console.error(err);
       setError("Failed to load plans.");
     }
   };
 
-  return (
-    <div>
-      <h2>My Plans</h2>
-      {error && <p style={{ color: "red" }}>{error}</p>}
+  const handleSelectPlan = (plan) => {
+    if (plan.type === "PREPAID") {
+      navigate("/user/Recharge-SIM");
+    } else if (plan.type === "POSTPAID") {
+      navigate("/user/ChangePlanPostpaid");
+    }
+  };
 
-      {plans.length === 0 ? (
-        <p>No plans found.</p>
+  const filteredPlans = plans.filter(plan => plan.type === selectedType);
+
+  return (
+    <div className="plans-container">
+      <h2>My Plans</h2>
+
+      <div className="plan-toggle">
+        <button
+          className={selectedType === "PREPAID" ? "active" : ""}
+          onClick={() => setSelectedType("PREPAID")}
+        >
+          Prepaid
+        </button>
+        <button
+          className={selectedType === "POSTPAID" ? "active" : ""}
+          onClick={() => setSelectedType("POSTPAID")}
+        >
+          Postpaid
+        </button>
+      </div>
+
+      {error && <p className="error">{error}</p>}
+
+      {filteredPlans.length === 0 ? (
+        <p>No {selectedType} plans found.</p>
       ) : (
-        <ul>
-          {plans.map((plan) => (
-            <li key={plan.id}>
-              <strong>{plan.name}</strong> — ₹{plan.price}, Data: {plan.dataLimit ?? "-"} GB, Calls: {plan.callLimit ?? "-"} mins, validity(in Days):{plan.validity}, Type:{plan.type}
-            </li>
+        <div className="plans-grid">
+          {filteredPlans.map(plan => (
+            <div key={plan.id} className="plan-card">
+              <h3>{plan.name}</h3>
+              <p className="price">₹{plan.price}</p>
+              <div className="plan-info">
+                <p>Data: {plan.dataLimit ?? "-"} GB</p>
+                <p>Calls: {plan.callLimit ?? "-"} mins</p>
+                <p>Validity: {plan.validity} days</p>
+              </div>
+              <button
+                className="select-btn"
+                onClick={() => handleSelectPlan(plan)}
+              >
+                Select Plan
+              </button>
+            </div>
           ))}
-        </ul>
+        </div>
       )}
     </div>
   );

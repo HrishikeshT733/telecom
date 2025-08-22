@@ -39,8 +39,8 @@ export default function ApplySim() {
       await applySim(simData, user.id, selectedPlanId);
       setSuccessMsg("SIM application submitted successfully.");
       setSelectedPlanId("");
-    } catch {
-      setError("Failed to submit SIM application.");
+    } catch(err){
+      setError(err.response?.data?.message || "Failed to submit SIM application.");
     }
   };
 
