@@ -7,28 +7,30 @@ import {
   payBillToChangePlan,
   payBillToContinueSamePlan,
 } from "../../api/billApi";
-import { viewAllSim } from "../../api/simApi"; //  import
+import { viewAllSim } from "../../api/simApi";
 
 export default function BillList() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
+
+  // Initialize states to empty arrays to prevent undefined
   const [bills, setBills] = useState([]);
   const [error, setError] = useState("");
   const [filterStatus, setFilterStatus] = useState("ALL");
   const [filterPhone, setFilterPhone] = useState("ALL");
-  const [allPhones, setAllPhones] = useState([]); // store all SIM phone numbers
+  const [allPhones, setAllPhones] = useState([]);
 
   useEffect(() => {
     if (user?.id) {
       fetchBills(user.id);
-      fetchPhones(user.id); //  fetch SIM phone numbers
+      fetchPhones(user.id);
     }
   }, [user]);
 
   const fetchBills = async (customerId) => {
     try {
       const data = await getBillsByCustomer(customerId);
-      setBills(data);
+      setBills(Array.isArray(data) ? data : []); // Safe check
     } catch (err) {
       setError("Failed to fetch bills. Please try again later.");
     }
@@ -37,9 +39,9 @@ export default function BillList() {
   const fetchPhones = async (customerId) => {
     try {
       const sims = await viewAllSim(customerId);
-      const phones = sims
-        .map((sim) => sim.phoneNumber)
-        .filter(Boolean); // remove null/undefined
+      const phones = Array.isArray(sims)
+        ? sims.map((sim) => sim.phoneNumber).filter(Boolean)
+        : [];
       setAllPhones(phones);
     } catch (err) {
       console.error("Failed to fetch SIM phone numbers", err);
@@ -74,10 +76,9 @@ export default function BillList() {
     }
   };
 
-  // Filter bills by status and phone
   const filteredBills = bills
     .filter(
-      (bill) => filterStatus === "ALL" || bill.status.toUpperCase() === filterStatus
+      (bill) => filterStatus === "ALL" || bill.status?.toUpperCase() === filterStatus
     )
     .filter(
       (bill) => filterPhone === "ALL" || bill.sim?.phoneNumber === filterPhone
@@ -87,7 +88,6 @@ export default function BillList() {
     <div style={{ padding: "20px" }}>
       <h2>My Bills</h2>
 
-      {/* Filters */}
       <div style={{ marginBottom: "10px" }}>
         <label htmlFor="statusFilter">Filter by Status: </label>
         <select
@@ -120,7 +120,7 @@ export default function BillList() {
 
       {error && <p style={{ color: "red" }}>{error}</p>}
 
-      {filteredBills.length > 0 ? (
+      {Array.isArray(filteredBills) && filteredBills.length > 0 ? (
         <table
           border="1"
           cellPadding="8"
@@ -159,14 +159,16 @@ export default function BillList() {
                     ? new Date(bill.billPaiddate).toLocaleDateString()
                     : "-"}
                 </td>
-                <td>{bill.plan.name || "-"}</td>
+                <td>{bill.plan?.name || "-"}</td>
                 <td>{bill.sim?.phoneNumber || "-"}</td>
                 <td>{bill.simType || "-"}</td>
                 <td>{bill.extraDataUsed ?? 0}</td>
                 <td>{bill.extraCallUsed ?? 0}</td>
                 <td>
                   {bill.status === "UNPAID" ? (
-                    <button onClick={() => handlePayment(bill)}>Make Payment</button>
+                    <button onClick={() => handlePayment(bill)}>
+                      Make Payment
+                    </button>
                   ) : (
                     "-"
                   )}
