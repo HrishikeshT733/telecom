@@ -1,18 +1,49 @@
 import React, { useEffect, useState } from 'react';
 import { getAllPlans, createPlan, updatePlan, deletePlan } from '../../api/planApi';
+import {
+  Box,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TextField,
+  Button,
+  Typography,
+  Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  MenuItem,
+  IconButton,
+  Toolbar,
+  Chip
+} from '@mui/material';
+import {
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Add as AddIcon,
+  Cancel as CancelIcon
+} from '@mui/icons-material';
 
-const Plans = () => {
+const PlanManagement = () => {
   const [plans, setPlans] = useState([]);
-  const [form, setForm] = useState({
+  const [formData, setFormData] = useState({
     name: '',
     price: '',
     dataLimit: '',
     callLimit: '',
     simType: 'PREPAID',
-    validity:''
+    validity: ''
   });
   const [editingId, setEditingId] = useState(null);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [planToDelete, setPlanToDelete] = useState(null);
 
   useEffect(() => {
     fetchPlans();
@@ -24,178 +55,286 @@ const Plans = () => {
       setPlans(data);
     } catch {
       setError('Failed to fetch plans');
+      setTimeout(() => setError(''), 3000);
     }
   };
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setSuccess('');
 
-    if (!form.name || !form.price) {
-      setError('Name and Price are required');
+    if (!formData.name || !formData.price || !formData.validity) {
+      setError('Name, Price and Validity are required');
+      setTimeout(() => setError(''), 3000);
       return;
     }
 
     try {
       const planPayload = {
-        name: form.name,
-        price: Number(form.price),
-        dataLimit: form.dataLimit ? Number(form.dataLimit) : null,
-        callLimit: form.callLimit ? Number(form.callLimit) : null,
-        type: form.simType, // assuming backend expects 'type' for SimType enum
-        validity:Number(form.validity)
+        name: formData.name,
+        price: Number(formData.price),
+        dataLimit: formData.dataLimit ? Number(formData.dataLimit) : null,
+        callLimit: formData.callLimit ? Number(formData.callLimit) : null,
+        type: formData.simType,
+        validity: Number(formData.validity)
       };
 
       if (editingId) {
         await updatePlan(editingId, planPayload);
+        setSuccess('Plan updated successfully');
       } else {
         await createPlan(planPayload);
+        setSuccess('Plan created successfully');
       }
 
-      setForm({
-        name: '',
-        price: '',
-        dataLimit: '',
-        callLimit: '',
-        simType: 'PREPAID',
-        validity:''
-      });
-      setEditingId(null);
+      resetForm();
       fetchPlans();
+      setTimeout(() => setSuccess(''), 3000);
     } catch {
       setError('Failed to save plan');
+      setTimeout(() => setError(''), 3000);
     }
   };
 
   const handleEdit = (plan) => {
-    setForm({
+    setFormData({
       name: plan.name,
       price: plan.price,
       dataLimit: plan.dataLimit ?? '',
       callLimit: plan.callLimit ?? '',
       simType: plan.type || 'PREPAID',
-      validity:plan.validity
+      validity: plan.validity
     });
     setEditingId(plan.id);
   };
 
-  const handleDelete = async (id) => {
+  const handleDeleteClick = (plan) => {
+    setPlanToDelete(plan);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
     try {
-      await deletePlan(id);
+      await deletePlan(planToDelete.id);
+      setSuccess('Plan deleted successfully');
       fetchPlans();
+      setDeleteDialogOpen(false);
+      setPlanToDelete(null);
+      setTimeout(() => setSuccess(''), 3000);
     } catch {
       setError('Failed to delete plan');
+      setTimeout(() => setError(''), 3000);
+      setDeleteDialogOpen(false);
     }
   };
 
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      price: '',
+      dataLimit: '',
+      callLimit: '',
+      simType: 'PREPAID',
+      validity: ''
+    });
+    setEditingId(null);
+  };
+
   return (
-    <div>
-      <h2>Manage Plans</h2>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+    <Box sx={{ p: 3 }}>
+      <Paper sx={{ p: 3, mb: 3 }}>
+        <Typography variant="h4" gutterBottom>
+          {editingId ? 'Edit Plan' : 'Create New Plan'}
+        </Typography>
+        
+        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+        {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
+        
+        <Box component="form" onSubmit={handleSubmit} sx={{ mt: 2 }}>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 2 }}>
+            <TextField
+              name="name"
+              label="Plan Name"
+              value={formData.name}
+              onChange={handleChange}
+              required
+              sx={{ minWidth: 200 }}
+            />
+            <TextField
+              name="price"
+              label="Price"
+              type="number"
+              value={formData.price}
+              onChange={handleChange}
+              required
+              sx={{ minWidth: 120 }}
+            />
+            <TextField
+              name="validity"
+              label="Validity (days)"
+              type="number"
+              value={formData.validity}
+              onChange={handleChange}
+              required
+              sx={{ minWidth: 140 }}
+            />
+          </Box>
+          
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, mb: 2 }}>
+            <TextField
+              name="dataLimit"
+              label="Data Limit (GB)"
+              type="number"
+              value={formData.dataLimit}
+              onChange={handleChange}
+              sx={{ minWidth: 160 }}
+            />
+            <TextField
+              name="callLimit"
+              label="Call Limit (minutes)"
+              type="number"
+              value={formData.callLimit}
+              onChange={handleChange}
+              sx={{ minWidth: 180 }}
+            />
+            <TextField
+              name="simType"
+              label="SIM Type"
+              select
+              value={formData.simType}
+              onChange={handleChange}
+              required
+              sx={{ minWidth: 140 }}
+            >
+              <MenuItem value="PREPAID">Prepaid</MenuItem>
+              <MenuItem value="POSTPAID">Postpaid</MenuItem>
+            </TextField>
+          </Box>
+          
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button 
+              type="submit" 
+              variant="contained" 
+              startIcon={editingId ? <EditIcon /> : <AddIcon />}
+            >
+              {editingId ? 'Update Plan' : 'Add Plan'}
+            </Button>
+            {editingId && (
+              <Button 
+                variant="outlined" 
+                onClick={resetForm}
+                startIcon={<CancelIcon />}
+              >
+                Cancel
+              </Button>
+            )}
+          </Box>
+        </Box>
+      </Paper>
 
-      <form onSubmit={handleSubmit} style={{ marginBottom: '20px' }}>
-        <input
-          name="name"
-          placeholder="Plan Name"
-          value={form.name}
-          onChange={handleChange}
-          required
-        />
-        <input
-          name="price"
-          type="number"
-          placeholder="Price"
-          value={form.price}
-          onChange={handleChange}
-          required
-        />
-        <input
-          name="dataLimit"
-          type="number"
-          placeholder="Data Limit (GB)"
-          value={form.dataLimit}
-          onChange={handleChange}
-        />
-        <input
-          name="callLimit"
-          type="number"
-          placeholder="Call Limit (minutes)"
-          value={form.callLimit}
-          onChange={handleChange}
-        />
-          <input
-          name="validity"
-          placeholder="validity in days"
-          value={form.validity}
-          onChange={handleChange}
-          required
-        />
-          <select name="simType" value={form.simType} onChange={handleChange} required>
-          <option value="PREPAID">Prepaid</option>
-          <option value="POSTPAID">Postpaid</option>
-        </select>
-        <button type="submit">{editingId ? 'Update Plan' : 'Add Plan'}</button>
-        {editingId && (
-          <button
-            type="button"
-            onClick={() => {
-              setEditingId(null);
-              setForm({
-                name: '',
-                price: '',
-                dataLimit: '',
-                callLimit: '',
-                simType: 'PREPAID',
-                validity:''
-              });
-              setError('');
-            }}
-          >
-            Cancel
-          </button>
-        )}
-      </form>
+      <Paper>
+        <Toolbar>
+          <Typography variant="h5" component="div" sx={{ flexGrow: 1 }}>
+            Plan List
+          </Typography>
+          <Typography variant="body2" color="textSecondary">
+            {plans.length} {plans.length === 1 ? 'plan' : 'plans'} total
+          </Typography>
+        </Toolbar>
+        
+        <TableContainer>
+          <Table>
+            <TableHead>
+              <TableRow sx={{ backgroundColor: 'grey.100' }}>
+                <TableCell>Name</TableCell>
+                <TableCell align="right">Price</TableCell>
+                <TableCell align="right">Data Limit</TableCell>
+                <TableCell align="right">Call Limit</TableCell>
+                <TableCell align="right">Validity</TableCell>
+                <TableCell>SIM Type</TableCell>
+                <TableCell align="center">Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {plans.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} align="center" sx={{ py: 3 }}>
+                    <Typography variant="body2" color="textSecondary">
+                      No plans found. Create your first plan above.
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                plans.map((plan) => (
+                  <TableRow key={plan.id} hover>
+                    <TableCell>
+                      <Typography fontWeight="medium">{plan.name}</Typography>
+                    </TableCell>
+                    <TableCell align="right">₹{plan.price}</TableCell>
+                    <TableCell align="right">
+                      {plan.dataLimit ? `${plan.dataLimit} GB` : '-'}
+                    </TableCell>
+                    <TableCell align="right">
+                      {plan.callLimit ? `${plan.callLimit} min` : '-'}
+                    </TableCell>
+                    <TableCell align="right">{plan.validity} days</TableCell>
+                    <TableCell>
+                      <Chip 
+                        label={plan.type} 
+                        size="small"
+                        color={plan.type === 'PREPAID' ? 'primary' : 'secondary'}
+                        variant="outlined"
+                      />
+                    </TableCell>
+                    <TableCell align="center">
+                      <IconButton 
+                        color="primary" 
+                        onClick={() => handleEdit(plan)}
+                        aria-label="edit"
+                      >
+                        <EditIcon />
+                      </IconButton>
+                      <IconButton 
+                        color="error" 
+                        onClick={() => handleDeleteClick(plan)}
+                        aria-label="delete"
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Paper>
 
-      <table border="1" cellPadding="8" style={{ width: '100%', borderCollapse: 'collapse' }}>
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Price</th>
-            <th>Data Limit (GB)</th>
-            <th>Call Limit (min)</th>
-            <th>Validity(In Days)</th>
-             <th>Sim Type</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {plans.length === 0 && (
-            <tr>
-              <td colSpan="6">No plans found.</td>
-            </tr>
-          )}
-          {plans.map((plan) => (
-            <tr key={plan.id}>
-              <td>{plan.name}</td>
-              <td>{plan.price}</td>
-              <td>{plan.dataLimit ?? '-'}</td>
-              <td>{plan.callLimit ?? '-'}</td>
-              <td>{plan.validity}</td>
-               <td>{plan.type}</td>
-              <td>
-                <button onClick={() => handleEdit(plan)}>Edit</button>{' '}
-                <button onClick={() => handleDelete(plan.id)}>Delete</button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+      >
+        <DialogTitle>Confirm Delete</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete the plan "{planToDelete?.name}"? This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+          <Button onClick={handleDeleteConfirm} color="error" variant="contained">
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
   );
 };
 
-export default Plans;
+export default PlanManagement;

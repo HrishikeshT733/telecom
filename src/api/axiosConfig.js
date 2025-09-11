@@ -3,7 +3,7 @@
 import axios from 'axios';
 import { getToken,isTokenExpired,removeToken } from '../utils/auth.js';
 const axiosInstance = axios.create({
-  baseURL: 'https://telecom-backend-1-tjcj.onrender.com', // Spring Boot backend
+  baseURL: 'http://localhost:8080', // Spring Boot backend
   headers: {
     'Content-Type': 'application/json',
   },

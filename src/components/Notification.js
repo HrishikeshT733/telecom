@@ -17,7 +17,11 @@ import {
   ListItemIcon,
   Divider,
   Tooltip,
-  Badge
+  Badge,
+  Menu,
+  MenuItem,
+  Avatar,
+  ListItemAvatar
 } from "@mui/material";
 import {
   Menu as MenuIcon,
@@ -32,9 +36,63 @@ import {
   SwapHoriz as ChangePlanIcon,
   Add as AddIcon,
   AccountCircle as AccountIcon,
-  Notifications as NotificationsIcon
+  Notifications as NotificationsIcon,
+  Warning as WarningIcon,
+  Info as InfoIcon,
+  CheckCircle as SuccessIcon,
+  LocalOffer as PromotionIcon,
+  NetworkCheck as NetworkIcon
 } from "@mui/icons-material";
 import { AuthContext } from '../context/AuthContext.js';
+
+// Mock notification data - in a real app, this would come from your backend
+const mockNotifications = [
+  {
+    id: 1,
+    type: 'billing',
+    title: 'Bill Generated',
+    message: 'Your monthly bill of $42.50 is ready for payment',
+    time: '10 minutes ago',
+    read: false,
+    icon: <BillIcon color="primary" />
+  },
+  {
+    id: 2,
+    type: 'usage',
+    title: 'High Data Usage',
+    message: 'You\'ve used 85% of your monthly data allowance',
+    time: '2 hours ago',
+    read: false,
+    icon: <WarningIcon color="warning" />
+  },
+  {
+    id: 3,
+    type: 'promotion',
+    title: 'New Plan Available',
+    message: 'Special offer: 20% more data for the same price',
+    time: '1 day ago',
+    read: true,
+    icon: <PromotionIcon color="secondary" />
+  },
+  {
+    id: 4,
+    type: 'system',
+    title: 'Network Maintenance',
+    message: 'Scheduled maintenance on Tuesday 2AM-4AM may cause brief disruptions',
+    time: '2 days ago',
+    read: true,
+    icon: <NetworkIcon color="info" />
+  },
+  {
+    id: 5,
+    type: 'success',
+    title: 'Payment Processed',
+    message: 'Your payment of $42.50 was successfully processed',
+    time: '3 days ago',
+    read: true,
+    icon: <SuccessIcon color="success" />
+  }
+];
 
 export default function TelecomNavbar({ role }) {
   const navigate = useNavigate();
@@ -43,6 +101,7 @@ export default function TelecomNavbar({ role }) {
   const isMobile = useMediaQuery(theme.breakpoints.down('lg'));
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notificationsAnchor, setNotificationsAnchor] = useState(null);
+  const [notifications, setNotifications] = useState(mockNotifications);
 
   const formatTime = (seconds) => {
     const m = String(Math.floor(seconds / 60)).padStart(2, "0");
@@ -62,6 +121,23 @@ export default function TelecomNavbar({ role }) {
   const handleNotificationsClose = () => {
     setNotificationsAnchor(null);
   };
+
+  const markAsRead = (id) => {
+    setNotifications(notifications.map(notification => 
+      notification.id === id ? { ...notification, read: true } : notification
+    ));
+  };
+
+  const markAllAsRead = () => {
+    setNotifications(notifications.map(notification => ({ ...notification, read: true })));
+  };
+
+  const clearAllNotifications = () => {
+    setNotifications([]);
+    handleNotificationsClose();
+  };
+
+  const unreadCount = notifications.filter(n => !n.read).length;
 
   // Admin navigation items
   const adminNavigation = [
@@ -151,7 +227,7 @@ export default function TelecomNavbar({ role }) {
       >
         <Box sx={{ p: 2 }}>
           <Typography variant="h6" sx={{ textAlign: 'center', fontWeight: 'bold', mb: 2 }}>
-            Telecom Management
+            TelecomHub
           </Typography>
           <Divider sx={{ borderColor: 'rgba(255, 255, 255, 0.2)', mb: 2 }} />
           
@@ -217,6 +293,100 @@ export default function TelecomNavbar({ role }) {
     </>
   );
 
+  // Render notifications menu
+  const renderNotificationsMenu = () => (
+    <>
+      <Tooltip title="Notifications" arrow>
+        <IconButton color="inherit" onClick={handleNotificationsOpen}>
+          <Badge badgeContent={unreadCount} color="error">
+            <NotificationsIcon />
+          </Badge>
+        </IconButton>
+      </Tooltip>
+      
+      <Menu
+        anchorEl={notificationsAnchor}
+        open={Boolean(notificationsAnchor)}
+        onClose={handleNotificationsClose}
+        PaperProps={{
+          sx: { 
+            width: 360,
+            maxHeight: 440,
+            mt: 1.5
+          }
+        }}
+        MenuListProps={{
+          sx: { py: 0 }
+        }}
+      >
+        <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography variant="h6">Notifications</Typography>
+            {unreadCount > 0 && (
+              <Button size="small" onClick={markAllAsRead}>
+                Mark all as read
+              </Button>
+            )}
+          </Box>
+        </Box>
+        
+        {notifications.length === 0 ? (
+          <Box sx={{ p: 3, textAlign: 'center' }}>
+            <NotificationsIcon sx={{ fontSize: 40, color: 'text.secondary', mb: 1 }} />
+            <Typography variant="body2" color="text.secondary">
+              No notifications
+            </Typography>
+          </Box>
+        ) : (
+          <>
+            <List sx={{ py: 0, maxHeight: 300, overflow: 'auto' }}>
+              {notifications.map((notification) => (
+                <MenuItem 
+                  key={notification.id} 
+                  onClick={() => markAsRead(notification.id)}
+                  sx={{ 
+                    py: 1.5,
+                    borderBottom: 1,
+                    borderColor: 'divider',
+                    backgroundColor: notification.read ? 'transparent' : 'action.hover'
+                  }}
+                >
+                  <ListItemAvatar>
+                    <Avatar sx={{ bgcolor: 'transparent' }}>
+                      {notification.icon}
+                    </Avatar>
+                  </ListItemAvatar>
+                  <Box sx={{ flexGrow: 1, overflow: 'hidden' }}>
+                    <Typography variant="subtitle2" noWrap>
+                      {notification.title}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" noWrap>
+                      {notification.message}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {notification.time}
+                    </Typography>
+                  </Box>
+                </MenuItem>
+              ))}
+            </List>
+            
+            <Box sx={{ p: 1, borderTop: 1, borderColor: 'divider' }}>
+              <Button 
+                fullWidth 
+                size="small" 
+                onClick={clearAllNotifications}
+                disabled={notifications.length === 0}
+              >
+                Clear all notifications
+              </Button>
+            </Box>
+          </>
+        )}
+      </Menu>
+    </>
+  );
+
   return (
     <AppBar 
       position="static" 
@@ -252,13 +422,7 @@ export default function TelecomNavbar({ role }) {
         {/* Right-side actions */}
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           {/* Notifications */}
-          <Tooltip title="Notifications" arrow>
-            <IconButton color="inherit">
-              <Badge badgeContent={4} color="error">
-                <NotificationsIcon />
-              </Badge>
-            </IconButton>
-          </Tooltip>
+          {renderNotificationsMenu()}
 
           {/* Session Timer */}
           {!isMobile && (

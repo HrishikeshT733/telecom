@@ -2,27 +2,54 @@ import React, { useEffect, useState } from "react";
 import { getAllCustomer } from "../../api/customerApi";
 import { viewAllSim } from "../../api/simApi";
 import { getAllBills } from "../../api/billApi.js";
+import {
+  Box,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TextField,
+  Typography,
+  Alert,
+  MenuItem,
+  Chip,
+  Grid,
+  CircularProgress
+} from '@mui/material';
+import {
+  Receipt as ReceiptIcon,
+  Person as PersonIcon,
+  SimCard as SimCardIcon
+} from '@mui/icons-material';
 
-const Bills = () => {
+const BillManagement = () => {
   const [customers, setCustomers] = useState([]);
   const [customerSims, setCustomerSims] = useState([]);
   const [bills, setBills] = useState([]);
-
   const [selectedCustomer, setSelectedCustomer] = useState("");
   const [selectedSim, setSelectedSim] = useState("");
-
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [simLoading, setSimLoading] = useState(false);
+  const [billLoading, setBillLoading] = useState(false);
 
   useEffect(() => {
     fetchCustomers();
   }, []);
 
   const fetchCustomers = async () => {
+    setLoading(true);
     try {
       const data = await getAllCustomer();
-      setCustomers(Array.isArray(data) ? data : []); // ✅ Ensure array
+      setCustomers(Array.isArray(data) ? data : []);
+      setError("");
     } catch {
       setError("Failed to fetch customers");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -33,11 +60,15 @@ const Bills = () => {
     setCustomerSims([]);
 
     if (customerId) {
+      setSimLoading(true);
       try {
         const sims = await viewAllSim(customerId);
-        setCustomerSims(Array.isArray(sims) ? sims : []); // ✅ Ensure array
+        setCustomerSims(Array.isArray(sims) ? sims : []);
+        setError("");
       } catch {
-        setError("Failed to fetch sims for customer");
+        setError("Failed to fetch SIMs for customer");
+      } finally {
+        setSimLoading(false);
       }
     }
   };
@@ -47,121 +78,206 @@ const Bills = () => {
     setBills([]);
 
     if (phoneNumber) {
+      setBillLoading(true);
       try {
         const data = await getAllBills();
 
-        // ✅ Always normalize bills into an array
+        // Normalize bills into an array
         let billsArray = [];
         if (Array.isArray(data)) {
           billsArray = data;
         } else if (data && typeof data === "object") {
-          billsArray = [data]; // single object case
+          billsArray = [data];
         }
 
-        // ✅ Safe filter
+        // Filter bills for selected SIM
         const simBills = billsArray.filter(
           (b) => b?.sim?.phoneNumber?.toString() === phoneNumber.toString()
         );
 
         setBills(simBills);
+        setError("");
       } catch (err) {
         console.error("Error fetching bills:", err);
         setError("Failed to fetch bills");
-        setBills([]); // ✅ fallback so UI won’t crash
+        setBills([]);
+      } finally {
+        setBillLoading(false);
       }
     }
   };
 
+  const getStatusColor = (status) => {
+    if (!status) return "default";
+    status = status.toLowerCase();
+    if (status === "paid") return "success";
+    if (status === "pending") return "warning";
+    if (status === "overdue") return "error";
+    return "default";
+  };
+
   return (
-    <div>
-      <h2>Bills</h2>
-      {error && <p style={{ color: "red" }}>{error}</p>}
+    <Box sx={{ p: 3 }}>
+      <Paper sx={{ p: 3, mb: 3 }}>
+        <Typography variant="h4" gutterBottom sx={{ display: 'flex', alignItems: 'center' }}>
+          <ReceiptIcon sx={{ mr: 1 }} /> Bill Management
+        </Typography>
+        
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError('')}>
+            {error}
+          </Alert>
+        )}
 
-      {/* Customer Dropdown */}
-      <div style={{ marginBottom: "15px" }}>
-        <label>
-          Customer:&nbsp;
-          <select
-            value={selectedCustomer}
-            onChange={(e) => handleCustomerChange(e.target.value)}
-          >
-            <option value="">Select Customer</option>
-            {customers.map((cust) => (
-              <option key={cust.id} value={cust.id}>
-                {cust.name} (ID: {cust.id})
-              </option>
-            ))}
-          </select>
-        </label>
+        <Grid container spacing={3} sx={{ mb: 3 }}>
+          <Grid item xs={12} md={6}>
+            <TextField
+              select
+              fullWidth
+              label="Select Customer"
+              value={selectedCustomer}
+              onChange={(e) => handleCustomerChange(e.target.value)}
+              disabled={loading}
+              InputProps={{
+                startAdornment: <PersonIcon sx={{ mr: 1, color: 'text.secondary' }} />
+              }}
+            >
+              <MenuItem value="">
+                <em>Select Customer</em>
+              </MenuItem>
+              {customers.map((cust) => (
+                <MenuItem key={cust.id} value={cust.id}>
+                  {cust.name} (ID: {cust.id})
+                </MenuItem>
+              ))}
+            </TextField>
+            {loading && (
+              <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
+                <CircularProgress size={20} sx={{ mr: 1 }} />
+                <Typography variant="body2">Loading customers...</Typography>
+              </Box>
+            )}
+          </Grid>
 
-        &nbsp;&nbsp;
-
-        {/* Sim Phone Number Dropdown */}
-        {selectedCustomer && (
-          <label>
-            Sim Phone Number:&nbsp;
-            <select
+          <Grid item xs={12} md={6}>
+            <TextField
+              select
+              fullWidth
+              label="Select SIM"
               value={selectedSim}
               onChange={(e) => handleSimChange(e.target.value)}
-              disabled={!customerSims.length}
+              disabled={!selectedCustomer || simLoading || customerSims.length === 0}
+              InputProps={{
+                startAdornment: <SimCardIcon sx={{ mr: 1, color: 'text.secondary' }} />
+              }}
             >
-              <option value="">Select SIM</option>
+              <MenuItem value="">
+                <em>Select SIM</em>
+              </MenuItem>
               {customerSims.map((sim) => (
-                <option key={sim.id} value={sim.phoneNumber}>
+                <MenuItem key={sim.id} value={sim.phoneNumber}>
                   {sim.phoneNumber}
-                </option>
+                </MenuItem>
               ))}
-            </select>
-          </label>
-        )}
-      </div>
+            </TextField>
+            {simLoading && (
+              <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
+                <CircularProgress size={20} sx={{ mr: 1 }} />
+                <Typography variant="body2">Loading SIMs...</Typography>
+              </Box>
+            )}
+            {selectedCustomer && !simLoading && customerSims.length === 0 && (
+              <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
+                No SIMs found for this customer
+              </Typography>
+            )}
+          </Grid>
+        </Grid>
+      </Paper>
 
-      {/* Bills Table */}
+      {billLoading && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
+          <CircularProgress />
+        </Box>
+      )}
+
       {selectedSim && bills.length > 0 && (
-        <table
-          border="1"
-          cellPadding="8"
-          style={{ width: "100%", borderCollapse: "collapse" }}
-        >
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Total Amount (Rs)</th>
-              <th>Status</th>
-              <th>Generated Date</th>
-              <th>SIM Card Type</th>
-              <th>Bill Paid Date</th>
-            </tr>
-          </thead>
-          <tbody>
-            {bills.map((bill) => (
-              <tr key={bill?.id || Math.random()}>
-                <td>{bill?.id ?? "N/A"}</td>
-                <td>{bill?.amount ?? "N/A"}</td>
-                <td>{bill?.status ?? "N/A"}</td>
-                <td>
-                  {bill?.generatedDate
-                    ? new Date(bill.generatedDate).toLocaleDateString()
-                    : "N/A"}
-                </td>
-                <td>{bill?.simType ?? "N/A"}</td>
-                <td>
-                  {bill?.billPaiddate
-                    ? new Date(bill.billPaiddate).toLocaleDateString()
-                    : "N/A"}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <Paper>
+          <Box sx={{ p: 2 }}>
+            <Typography variant="h6" gutterBottom>
+              Bills for SIM: {selectedSim}
+            </Typography>
+            <Typography variant="body2" color="textSecondary" gutterBottom>
+              {bills.length} bill{bills.length !== 1 ? 's' : ''} found
+            </Typography>
+          </Box>
+          
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow sx={{ backgroundColor: 'grey.100' }}>
+                  <TableCell>ID</TableCell>
+                  <TableCell align="right">Amount (Rs)</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell>Generated Date</TableCell>
+                  <TableCell>SIM Type</TableCell>
+                  <TableCell>Paid Date</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {bills.map((bill) => (
+                  <TableRow key={bill?.id || Math.random()} hover>
+                    <TableCell>{bill?.id ?? "N/A"}</TableCell>
+                    <TableCell align="right">
+                      <Typography fontWeight="medium">
+                        Rs. {bill?.amount ?? "N/A"}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Chip 
+                        label={bill?.status ?? "N/A"} 
+                        size="small"
+                        color={getStatusColor(bill?.status)}
+                      />
+                    </TableCell>
+                    <TableCell>
+                      {bill?.generatedDate
+                        ? new Date(bill.generatedDate).toLocaleDateString()
+                        : "N/A"}
+                    </TableCell>
+                    <TableCell>
+                      <Chip 
+                        label={bill?.simType ?? "N/A"} 
+                        size="small"
+                        variant="outlined"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      {bill?.billPaiddate
+                        ? new Date(bill.billPaiddate).toLocaleDateString()
+                        : "Not Paid"}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Paper>
       )}
 
-      {/* No data message */}
-      {selectedSim && bills.length === 0 && (
-        <p>No Bill data found for this SIM.</p>
+      {selectedSim && !billLoading && bills.length === 0 && (
+        <Paper sx={{ p: 3, textAlign: 'center' }}>
+          <ReceiptIcon sx={{ fontSize: 60, color: 'text.secondary', mb: 2 }} />
+          <Typography variant="h6" gutterBottom>
+            No Bills Found
+          </Typography>
+          <Typography variant="body2" color="textSecondary">
+            No bill data found for the selected SIM.
+          </Typography>
+        </Paper>
       )}
-    </div>
+    </Box>
   );
 };
 
-export default Bills;
+export default BillManagement;
