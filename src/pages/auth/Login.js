@@ -18,7 +18,8 @@ import {
   Fingerprint as AadharIcon,
   VpnKey as PasswordIcon,
   Login as LoginIcon,
-  PersonAdd as RegisterIcon
+  PersonAdd as RegisterIcon,
+  Info as InfoIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { login } from '../../api/authApi';
@@ -143,13 +144,27 @@ const Login = () => {
                 ),
               }}
             />
+            <Alert 
+              severity="info" 
+              icon={<InfoIcon fontSize="small" />}
+              sx={{ 
+                mt: 2, 
+                mb: 1,
+                fontSize: '0.8rem',
+                '& .MuiAlert-message': {
+                  padding: '4px 0'
+                }
+              }}
+            >
+              Note: The first login may take a moment as the server initializes. Subsequent logins will be faster.
+            </Alert>
             <Button
               type="submit"
               fullWidth
               variant="contained"
               disabled={loading}
               sx={{ 
-                mt: 3, 
+                mt: 2, 
                 mb: 2, 
                 py: 1.5,
                 fontSize: '1.1rem'
